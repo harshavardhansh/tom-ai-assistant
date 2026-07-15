@@ -1,0 +1,104 @@
+{
+  "metadata": {
+    "sector": "Cross-sector",
+    "function": "Finance",
+    "technology": "Tech-agnostic",
+    "note": "Illustrative Phase-1 vertical slice. In production this is produced by pipeline/excel_to_graph.py from an ARIS export and loaded into Cosmos DB (Gremlin)."
+  },
+  "nodes": [
+    {"code": "F", "name": "Finance", "level": 0, "type": "Process"},
+
+    {"code": "F-RTR", "name": "Record to Report", "level": 1, "type": "Process",
+     "process_flow_json": {
+       "name": "Record to Report - Period-End Close",
+       "steps": [
+         {"id": "s1", "name": "Open Accounting Period", "role": "GL Accountant", "next": ["s2"]},
+         {"id": "s2", "name": "Post Journal Entries", "role": "GL Accountant", "next": ["s3"]},
+         {"id": "s3", "name": "Reconcile Accounts", "role": "GL Accountant", "next": ["s4"]},
+         {"id": "s4", "name": "Review and Approve", "role": "Finance Manager", "next": ["s5"]},
+         {"id": "s5", "name": "Close Period and Report", "role": "Financial Controller", "next": []}
+       ]
+     }},
+
+    {"code": "F-P2P", "name": "Procure to Pay", "level": 1, "type": "Process",
+     "process_flow_json": {
+       "name": "Procure to Pay - Invoice and Payment",
+       "steps": [
+         {"id": "s1", "name": "Receive Supplier Invoice", "role": "AP Clerk", "next": ["s2"]},
+         {"id": "s2", "name": "Match to PO and Receipt", "role": "AP Clerk", "next": ["s3"]},
+         {"id": "s3", "name": "Three-Way Match OK?", "role": "AP Clerk", "next": ["s4", "s6"], "labels": ["Yes", "No"]},
+         {"id": "s4", "name": "Post Invoice", "role": "AP Clerk", "next": ["s5"]},
+         {"id": "s5", "name": "Schedule and Release Payment", "role": "AP Manager", "next": []},
+         {"id": "s6", "name": "Resolve Exception", "role": "AP Manager", "next": ["s2"]}
+       ]
+     }},
+
+    {"code": "F-O2C", "name": "Order to Cash", "level": 1, "type": "Process"},
+
+    {"code": "F-RTR-GL", "name": "General Ledger Accounting", "level": 2, "type": "Process"},
+    {"code": "F-RTR-PC", "name": "Period-End Close", "level": 2, "type": "Process"},
+    {"code": "F-RTR-FR", "name": "Financial Reporting", "level": 2, "type": "Process"},
+
+    {"code": "F-P2P-REQ", "name": "Requisitioning", "level": 2, "type": "Process"},
+    {"code": "F-P2P-INV", "name": "Invoice Processing", "level": 2, "type": "Process"},
+    {"code": "F-P2P-PAY", "name": "Payment Processing", "level": 2, "type": "Process"},
+
+    {"code": "F-O2C-CR", "name": "Credit Management", "level": 2, "type": "Process"},
+    {"code": "F-O2C-BIL", "name": "Billing", "level": 2, "type": "Process"},
+
+    {"code": "F-RTR-GL-JE", "name": "Journal Entry Processing", "level": 3, "type": "Process"},
+    {"code": "F-RTR-GL-REC", "name": "Account Reconciliation", "level": 3, "type": "Process"},
+    {"code": "F-RTR-FR-STAT", "name": "Statutory Reporting", "level": 3, "type": "Process"},
+
+    {"code": "F-RTR-GL-JE-MAN", "name": "Manual Journal Entry", "level": 4, "type": "Process"},
+    {"code": "F-RTR-GL-JE-REC", "name": "Recurring Journal Entry", "level": 4, "type": "Process"},
+
+    {"code": "ROLE-GLA", "name": "GL Accountant", "type": "Role"},
+    {"code": "ROLE-FM", "name": "Finance Manager", "type": "Role"},
+    {"code": "ROLE-CTR", "name": "Financial Controller", "type": "Role"},
+    {"code": "ROLE-APC", "name": "AP Clerk", "type": "Role"},
+    {"code": "ROLE-APM", "name": "AP Manager", "type": "Role"},
+
+    {"code": "CTRL-REC", "name": "Monthly Account Reconciliation", "type": "Control"},
+    {"code": "CTRL-SOD", "name": "Segregation of Duties", "type": "Control"},
+    {"code": "CTRL-3WM", "name": "Three-Way Match", "type": "Control"},
+
+    {"code": "POL-FIN", "name": "Finance Policy Framework", "type": "Policy"}
+  ],
+  "edges": [
+    {"from": "F", "to": "F-RTR", "type": "HAS_SUB_PROCESS"},
+    {"from": "F", "to": "F-P2P", "type": "HAS_SUB_PROCESS"},
+    {"from": "F", "to": "F-O2C", "type": "HAS_SUB_PROCESS"},
+
+    {"from": "F-RTR", "to": "F-RTR-GL", "type": "HAS_SUB_PROCESS"},
+    {"from": "F-RTR", "to": "F-RTR-PC", "type": "HAS_SUB_PROCESS"},
+    {"from": "F-RTR", "to": "F-RTR-FR", "type": "HAS_SUB_PROCESS"},
+
+    {"from": "F-P2P", "to": "F-P2P-REQ", "type": "HAS_SUB_PROCESS"},
+    {"from": "F-P2P", "to": "F-P2P-INV", "type": "HAS_SUB_PROCESS"},
+    {"from": "F-P2P", "to": "F-P2P-PAY", "type": "HAS_SUB_PROCESS"},
+
+    {"from": "F-O2C", "to": "F-O2C-CR", "type": "HAS_SUB_PROCESS"},
+    {"from": "F-O2C", "to": "F-O2C-BIL", "type": "HAS_SUB_PROCESS"},
+
+    {"from": "F-RTR-GL", "to": "F-RTR-GL-JE", "type": "HAS_SUB_PROCESS"},
+    {"from": "F-RTR-GL", "to": "F-RTR-GL-REC", "type": "HAS_SUB_PROCESS"},
+    {"from": "F-RTR-FR", "to": "F-RTR-FR-STAT", "type": "HAS_SUB_PROCESS"},
+
+    {"from": "F-RTR-GL-JE", "to": "F-RTR-GL-JE-MAN", "type": "HAS_SUB_PROCESS"},
+    {"from": "F-RTR-GL-JE", "to": "F-RTR-GL-JE-REC", "type": "HAS_SUB_PROCESS"},
+
+    {"from": "F-RTR", "to": "ROLE-GLA", "type": "PERFORMED_BY"},
+    {"from": "F-RTR", "to": "ROLE-FM", "type": "PERFORMED_BY"},
+    {"from": "F-RTR", "to": "ROLE-CTR", "type": "PERFORMED_BY"},
+    {"from": "F-P2P", "to": "ROLE-APC", "type": "PERFORMED_BY"},
+    {"from": "F-P2P", "to": "ROLE-APM", "type": "PERFORMED_BY"},
+
+    {"from": "F-RTR", "to": "CTRL-REC", "type": "HAS_CONTROL"},
+    {"from": "F-RTR", "to": "CTRL-SOD", "type": "HAS_CONTROL"},
+    {"from": "F-P2P", "to": "CTRL-3WM", "type": "HAS_CONTROL"},
+    {"from": "F-P2P", "to": "CTRL-SOD", "type": "HAS_CONTROL"},
+
+    {"from": "F", "to": "POL-FIN", "type": "GOVERNED_BY"}
+  ]
+}

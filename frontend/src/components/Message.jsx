@@ -1,0 +1,121 @@
+import RouteBadge from "./RouteBadge.jsx";
+import ProcessDiagram from "./ProcessDiagram.jsx";
+import ExportMenu from "./ExportMenu.jsx";
+import SuggestedQuestions from "./SuggestedQuestions.jsx";
+
+// Minimal, safe markdown -> React. Handles paragraphs, bullet lists,
+// **bold**, and `inline code`. We deliberately do not inject arbitrary HTML.
+function renderInline(text, keyPrefix) {
+  const nodes = [];
+  const regex = /\*\*(.+?)\*\*|`(.+?)`/g;
+  let last = 0;
+  let m;
+  let i = 0;
+  while ((m = regex.exec(text)) !== null) {
+    if (m.index > last) nodes.push(text.slice(last, m.index));
+    if (m[1]) nodes.push(<strong key={`${keyPrefix}-b${i}`}>{m[1]}</strong>);
+    else if (m[2]) nodes.push(<code key={`${keyPrefix}-c${i}`}>{m[2]}</code>);
+    last = regex.lastIndex;
+    i += 1;
+  }
+  if (last < text.length) nodes.push(text.slice(last));
+  return nodes;
+}
+
+function renderMarkdown(text) {
+  const lines = (text || "").split("\n");
+  const blocks = [];
+  let bullets = [];
+  const flush = () => {
+    if (bullets.length) {
+      blocks.push(
+        <ul key={`ul-${blocks.length}`}>
+          {bullets.map((b, i) => (
+            <li key={i}>{renderInline(b, `li-${blocks.length}-${i}`)}</li>
+          ))}
+        </ul>
+      );
+      bullets = [];
+    }
+  };
+  lines.forEach((raw, idx) => {
+    const line = raw.trimEnd();
+    if (!line.trim()) {
+      flush();
+      return;
+    }
+    if (/^\s*[-*]\s+/.test(line)) {
+      bullets.push(line.replace(/^\s*[-*]\s+/, ""));
+    } else {
+      flush();
+      blocks.push(<p key={`p-${idx}`}>{renderInline(line, `p-${idx}`)}</p>);
+    }
+  });
+  flush();
+  return blocks;
+}
+
+export default function Message({ msg, onAsk, getToken }) {
+  if (msg.role === "user") {
+    return (
+      <div className="msg user">
+        <div className="body" style={{ textAlign: "right" }}>
+          <span className="bubble">{msg.text}</span>
+        </div>
+        <div className="avatar">You</div>
+      </div>
+    );
+  }
+
+  const r = msg.response || {};
+  const latency = r.timings_ms
+    ? Object.values(r.timings_ms).reduce((a, b) => a + b, 0)
+    : null;
+
+  return (
+    <div className="msg assistant">
+      <div className="avatar">TOM</div>
+      <div className="body">
+        <div className="meta-row">
+          {r.route && <RouteBadge route={r.route} confidence={r.confidence} />}
+          {latency != null && <span className="latency">{Math.round(latency)} ms</span>}
+        </div>
+
+        <div className="content">{renderMarkdown(msg.text)}</div>
+
+        {r.process_diagram_svg && <ProcessDiagram svg={r.process_diagram_svg} />}
+
+        {r.citations && r.citations.length > 0 && (
+          <div className="citations">
+            <h4>Sources</h4>
+            {r.citations.map((c, i) => (
+              <div className="cite" key={i}>
+                <span className="num">{c.label}</span>
+                <span className="src">{c.source}</span>
+                {c.locator && <span className="loc">· {c.locator}</span>}
+                <span className="class">{c.classification}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="toolbar">
+          <button
+            className="tool-btn"
+            onClick={() => navigator.clipboard?.writeText(msg.text)}
+          >
+            Copy
+          </button>
+          <ExportMenu
+            markdown={msg.text}
+            title="TOM AI Assistant — Response"
+            processFlow={r.process_flow}
+            getToken={getToken}
+          />
+        </div>
+
+        <SuggestedQuestions questions={r.suggested_questions} onAsk={onAsk} />
+      </div>
+    </div>
+  );
+}

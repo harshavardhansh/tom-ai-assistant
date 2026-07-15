@@ -1,0 +1,81 @@
+/* ------------------------------------------------------------------ *
+ * TOM AI Knowledge Assistant — design tokens                          *
+ * Direction: a calm "knowledge instrument". Deep KPMG navy anchors    *
+ * the frame; the three route badges are the signature element because  *
+ * the route genuinely tells the user *where* an answer came from       *
+ * (process hierarchy vs documents vs both).                            *
+ * ------------------------------------------------------------------ */
+:root {
+  /* Brand + neutrals */
+  --navy: #0b1f4d;
+  --kpmg-blue: #00338d;
+  --cobalt: #1e5bd6;
+  --cobalt-700: #1747a6;
+  --sky: #e8f0fc;
+  --ink: #0e1726;
+  --muted: #5b6b8c;
+  --line: #dbe2ee;
+  --paper: #ffffff;
+  --canvas: #f4f7fc;
+
+  /* Route accents — one identity per "brain" */
+  --graph: #0f766e;     /* teal — structured hierarchy */
+  --graph-bg: #e6f5f2;
+  --vector: #6d28d9;    /* violet — document retrieval */
+  --vector-bg: #f1ebfc;
+  --multihop: #b45309;  /* amber — combined */
+  --multihop-bg: #fdf2e2;
+
+  /* Type — swap the display face for KPMG's licensed typeface in prod */
+  --font-display: "Segoe UI Semibold", "Inter", system-ui, -apple-system, sans-serif;
+  --font-body: "Segoe UI", "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "SFMono-Regular", "Cascadia Code", Consolas, monospace;
+
+  /* Scale */
+  --step--1: 0.82rem;
+  --step-0: 0.95rem;
+  --step-1: 1.18rem;
+  --step-2: 1.6rem;
+  --step-3: 2.1rem;
+
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow: 0 1px 2px rgba(11, 31, 77, 0.06), 0 8px 24px rgba(11, 31, 77, 0.08);
+  --shadow-sm: 0 1px 2px rgba(11, 31, 77, 0.08);
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root { height: 100%; }
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--step-0);
+  color: var(--ink);
+  background: var(--canvas);
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+}
+
+h1, h2, h3 { font-family: var(--font-display); line-height: 1.2; margin: 0; }
+
+button {
+  font: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: inherit;
+}
+
+a { color: var(--cobalt); }
+
+:focus-visible {
+  outline: 2px solid var(--cobalt);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}

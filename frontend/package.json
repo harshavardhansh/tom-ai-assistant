@@ -1,0 +1,22 @@
+{
+  "name": "tom-ai-assistant-web",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "TOM AI Knowledge Assistant — single page application",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@azure/msal-browser": "^3.26.1",
+    "@azure/msal-react": "^2.1.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.2",
+    "vite": "^5.4.8"
+  }
+}

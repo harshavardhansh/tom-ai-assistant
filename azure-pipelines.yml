@@ -1,0 +1,94 @@
+trigger:
+  branches:
+    include:
+      - main
+
+pr:
+  branches:
+    include:
+      - main
+
+variables:
+  pythonVersion: "3.11"
+  nodeVersion: "20.x"
+  imageRepository: "tom-backend"
+  spaImageRepository: "tom-spa"
+  dockerRegistryServiceConnection: "set-in-azure-devops"
+
+stages:
+  - stage: Validate
+    displayName: Validate TOM AI Assistant
+    jobs:
+      - job: Backend
+        displayName: Backend checks
+        pool:
+          vmImage: ubuntu-latest
+        steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: "$(pythonVersion)"
+          - script: |
+              python -m pip install --upgrade pip
+              pip install -r backend/requirements.txt
+              python -m compileall -q backend pipeline
+              cd backend
+              python -m pytest -q
+            displayName: Compile and test backend
+
+      - job: Frontend
+        displayName: Frontend build
+        pool:
+          vmImage: ubuntu-latest
+        steps:
+          - task: NodeTool@0
+            inputs:
+              versionSpec: "$(nodeVersion)"
+          - script: |
+              cd frontend
+              npm ci
+              npm run build
+            displayName: Build SPA
+
+      - job: IaC
+        displayName: Bicep validation
+        pool:
+          vmImage: ubuntu-latest
+        steps:
+          - script: |
+              az bicep build --file infra/main.bicep
+            displayName: Build Bicep template
+
+  - stage: Package
+    displayName: Build container images
+    dependsOn: Validate
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - job: Docker
+        displayName: Build and publish backend image
+        pool:
+          vmImage: ubuntu-latest
+        steps:
+          - task: Docker@2
+            inputs:
+              command: buildAndPush
+              containerRegistry: "$(dockerRegistryServiceConnection)"
+              repository: "$(imageRepository)"
+              Dockerfile: "backend/Dockerfile"
+              buildContext: "."
+              tags: |
+                $(Build.BuildId)
+
+      - job: DockerSpa
+        displayName: Build and publish SPA image
+        pool:
+          vmImage: ubuntu-latest
+        steps:
+          - task: Docker@2
+            inputs:
+              command: buildAndPush
+              containerRegistry: "$(dockerRegistryServiceConnection)"
+              repository: "$(spaImageRepository)"
+              Dockerfile: "frontend/Dockerfile"
+              buildContext: "frontend"
+              tags: |
+                $(Build.BuildId)

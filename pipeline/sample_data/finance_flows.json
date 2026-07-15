@@ -1,0 +1,23 @@
+{
+  "F-RTR": {
+    "name": "Record to Report - Period-End Close",
+    "steps": [
+      {"id": "s1", "name": "Open Accounting Period", "role": "GL Accountant", "next": ["s2"]},
+      {"id": "s2", "name": "Post Journal Entries", "role": "GL Accountant", "next": ["s3"]},
+      {"id": "s3", "name": "Reconcile Accounts", "role": "GL Accountant", "next": ["s4"]},
+      {"id": "s4", "name": "Review and Approve", "role": "Finance Manager", "next": ["s5"]},
+      {"id": "s5", "name": "Close Period and Report", "role": "Financial Controller", "next": []}
+    ]
+  },
+  "F-P2P": {
+    "name": "Procure to Pay - Invoice and Payment",
+    "steps": [
+      {"id": "s1", "name": "Receive Supplier Invoice", "role": "AP Clerk", "next": ["s2"]},
+      {"id": "s2", "name": "Match to PO and Receipt", "role": "AP Clerk", "next": ["s3"]},
+      {"id": "s3", "name": "Three-Way Match OK?", "role": "AP Clerk", "next": ["s4", "s6"], "labels": ["Yes", "No"]},
+      {"id": "s4", "name": "Post Invoice", "role": "AP Clerk", "next": ["s5"]},
+      {"id": "s5", "name": "Schedule and Release Payment", "role": "AP Manager", "next": []},
+      {"id": "s6", "name": "Resolve Exception", "role": "AP Manager", "next": ["s2"]}
+    ]
+  }
+}

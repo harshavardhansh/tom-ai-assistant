@@ -1,0 +1,116 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "comments": "TOM ingestion: pull approved TOM assets from the Global One Platform (SharePoint), gate them through Microsoft Defender, land them in Blob, and trigger graph/vector processing. Connection details and the processor endpoint are parameterised; secrets resolve from Key Vault, not inline.",
+    "parameters": {
+      "sharePointSite": { "type": "string" },
+      "sharePointLibrary": { "type": "string" },
+      "rawContainerUri": { "type": "string" },
+      "quarantineContainerUri": { "type": "string" },
+      "processorEndpoint": { "type": "string", "metadata": { "description": "Container App/Job endpoint that runs excel_to_graph / document_to_vector" } },
+      "assetSector": { "type": "string", "defaultValue": "Cross-sector", "metadata": { "description": "Sector metadata stamped on ingested graph nodes and vector chunks" } },
+      "assetFunction": { "type": "string", "defaultValue": "Finance", "metadata": { "description": "Function metadata stamped on ingested graph nodes and vector chunks" } },
+      "assetTechnology": { "type": "string", "defaultValue": "Tech-agnostic", "metadata": { "description": "Technology metadata stamped on ingested graph nodes and vector chunks" } },
+      "assetClassification": { "type": "string", "defaultValue": "KPMG Confidential", "metadata": { "description": "Document classification applied to vector chunks" } },
+      "flowsBlobNameSuffix": { "type": "string", "defaultValue": ".flows.json", "metadata": { "description": "Naming convention for the companion process-flow JSON exported with each ARIS hierarchy file" } },
+      "$connections": { "type": "Object", "defaultValue": {} }
+    },
+    "triggers": {
+      "When_a_TOM_asset_is_added_or_modified": {
+        "type": "ApiConnection",
+        "recurrence": { "frequency": "Minute", "interval": 5 },
+        "inputs": {
+          "host": { "connection": { "name": "@parameters('$connections')['sharepointonline']['connectionId']" } },
+          "method": "get",
+          "path": "/datasets/@{encodeURIComponent(parameters('sharePointSite'))}/triggers/onupdatedfileitems",
+          "queries": { "folderPath": "@parameters('sharePointLibrary')", "includeFileContent": true }
+        }
+      }
+    },
+    "actions": {
+      "Get_file_content": {
+        "type": "ApiConnection",
+        "runAfter": {},
+        "inputs": {
+          "host": { "connection": { "name": "@parameters('$connections')['sharepointonline']['connectionId']" } },
+          "method": "get",
+          "path": "/datasets/@{encodeURIComponent(parameters('sharePointSite'))}/files/@{encodeURIComponent(triggerBody()?['Identifier'])}/content"
+        }
+      },
+      "Scan_with_Defender": {
+        "type": "Http",
+        "runAfter": { "Get_file_content": ["Succeeded"] },
+        "comments": "Submits the file to the malware-scan endpoint (Defender for Storage on the staging container, or a scanning Function). Returns a clean/infected verdict.",
+        "inputs": {
+          "method": "POST",
+          "uri": "@parameters('processorEndpoint')/scan",
+          "headers": { "Content-Type": "application/octet-stream" },
+          "body": "@body('Get_file_content')",
+          "authentication": { "type": "ManagedServiceIdentity" }
+        }
+      },
+      "Branch_on_scan_result": {
+        "type": "If",
+        "runAfter": { "Scan_with_Defender": ["Succeeded"] },
+        "expression": { "equals": ["@body('Scan_with_Defender')?['verdict']", "clean"] },
+        "actions": {
+          "Upload_to_raw_blob": {
+            "type": "Http",
+            "inputs": {
+              "method": "PUT",
+              "uri": "@{parameters('rawContainerUri')}/@{triggerBody()?['Name']}",
+              "headers": { "x-ms-blob-type": "BlockBlob" },
+              "body": "@body('Get_file_content')",
+              "authentication": { "type": "ManagedServiceIdentity" }
+            }
+          },
+          "Trigger_processing": {
+            "type": "Http",
+            "runAfter": { "Upload_to_raw_blob": ["Succeeded"] },
+            "inputs": {
+              "method": "POST",
+              "uri": "@parameters('processorEndpoint')/process",
+              "headers": { "Content-Type": "application/json" },
+              "body": {
+                "blobName": "@triggerBody()?['Name']",
+                "fileExtension": "@{last(split(triggerBody()?['Name'], '.'))}",
+                "flowsBlobName": "@{if(or(endsWith(triggerBody()?['Name'], '.csv'), endsWith(triggerBody()?['Name'], '.xlsx')), concat(substring(triggerBody()?['Name'], 0, lastIndexOf(triggerBody()?['Name'], '.')), parameters('flowsBlobNameSuffix')), '')}",
+                "sector": "@parameters('assetSector')",
+                "function": "@parameters('assetFunction')",
+                "technology": "@parameters('assetTechnology')",
+                "classification": "@parameters('assetClassification')"
+              },
+              "authentication": { "type": "ManagedServiceIdentity" }
+            }
+          }
+        },
+        "else": {
+          "actions": {
+            "Quarantine_infected_file": {
+              "type": "Http",
+              "inputs": {
+                "method": "PUT",
+                "uri": "@{parameters('quarantineContainerUri')}/@{triggerBody()?['Name']}",
+                "headers": { "x-ms-blob-type": "BlockBlob" },
+                "body": "@body('Get_file_content')",
+                "authentication": { "type": "ManagedServiceIdentity" }
+              }
+            },
+            "Raise_security_alert": {
+              "type": "Http",
+              "runAfter": { "Quarantine_infected_file": ["Succeeded"] },
+              "inputs": {
+                "method": "POST",
+                "uri": "@parameters('processorEndpoint')/alert",
+                "body": { "event": "infected_tom_asset", "name": "@triggerBody()?['Name']" },
+                "authentication": { "type": "ManagedServiceIdentity" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "outputs": {}
+  }
+}

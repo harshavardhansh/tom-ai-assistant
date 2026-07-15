@@ -1,0 +1,132 @@
+[
+    {
+        "id":  "tom-overview-1",
+        "text":  "A Target Operating Model (TOM) describes how an organisation delivers value to its stakeholders. It connects strategy to execution across people, process, technology, data, governance, and sourcing. A TOM defines the future-state design an organisation aims to reach, providing a blueprint that aligns operating decisions with strategic intent.",
+        "source":  "TOM Foundations Guide",
+        "locator":  "p. 3",
+        "classification":  "KPMG Confidential",
+        "sector":  "Cross-sector",
+        "function":  "Finance",
+        "technology":  "Tech-agnostic"
+    },
+    {
+        "id":  "tom-levels-1",
+        "text":  "TOM process content is organised hierarchically from Level 0 to Level 4. Level 0 represents the function or value chain, Level 1 the end-to-end process groups, Level 2 the major processes, Level 3 the process activities, and Level 4 the detailed tasks or process steps. This decomposition allows consistent navigation from a high-level capability view down to executable steps.",
+        "source":  "TOM Foundations Guide",
+        "locator":  "p. 7",
+        "classification":  "KPMG Confidential",
+        "sector":  "Cross-sector",
+        "function":  "Finance",
+        "technology":  "Tech-agnostic"
+    },
+    {
+        "id":  "tom-tech-agnostic-1",
+        "text":  "A Tech-Agnostic TOM defines processes, roles, and controls independently of any specific software product or platform. It captures what the organisation must do and why, expressed in terms that remain valid regardless of the underlying technology. This makes the design reusable across clients and resilient to changes in the technology landscape.",
+        "source":  "TOM Design Principles",
+        "locator":  "section 2.1",
+        "classification":  "KPMG Confidential",
+        "sector":  "Cross-sector",
+        "function":  "Finance",
+        "technology":  "Tech-agnostic"
+    },
+    {
+        "id":  "tom-tech-specific-1",
+        "text":  "A Tech-Specific TOM extends the tech-agnostic design by binding processes to a particular technology stack, for example a named ERP or platform. It specifies how each capability is realised in that technology, including configuration patterns, integrations, and product-specific controls. Tech-specific models accelerate implementation but must be maintained as the product evolves.",
+        "source":  "TOM Design Principles",
+        "locator":  "section 2.2",
+        "classification":  "KPMG Confidential",
+        "sector":  "Cross-sector",
+        "function":  "Finance",
+        "technology":  "Tech-agnostic"
+    },
+    {
+        "id":  "tom-agnostic-vs-specific-1",
+        "text":  "The key difference between a Tech-Agnostic and a Tech-Specific TOM is the level of technology binding. The tech-agnostic model is product-neutral and describes the operating design in capability terms, maximising reuse and longevity. The tech-specific model is anchored to a chosen technology and describes realisation detail, trading some reusability for implementation speed and precision. Engagements typically start tech-agnostic and then derive tech-specific variants per client.",
+        "source":  "TOM Design Principles",
+        "locator":  "section 2.3",
+        "classification":  "KPMG Confidential",
+        "sector":  "Cross-sector",
+        "function":  "Finance",
+        "technology":  "Tech-agnostic"
+    },
+    {
+        "id":  "tom-ai-first-1",
+        "text":  "An AI-First TOM is an operating model designed on the assumption that artificial intelligence is a primary means of executing and augmenting work, rather than a bolt-on. It rethinks process steps, role boundaries, and controls so that AI agents and human experts collaborate, with human oversight concentrated on judgement, exceptions, and assurance. AI-First TOMs emphasise data readiness, model governance, and responsible-AI controls as first-class design elements.",
+        "source":  "AI-First Operating Models",
+        "locator":  "p. 12",
+        "classification":  "KPMG Confidential",
+        "sector":  "Cross-sector",
+        "function":  "Finance",
+        "technology":  "Tech-agnostic"
+    },
+    {
+        "id":  "tom-controls-1",
+        "text":  "Controls in a TOM ensure processes operate reliably and compliantly. Common finance controls include segregation of duties, three-way match in procurement, and periodic account reconciliation. Controls are attached to the processes they govern so that the operating model captures both the activity and its assurance.",
+        "source":  "TOM Controls Catalogue",
+        "locator":  "p. 5",
+        "classification":  "KPMG Confidential",
+        "sector":  "Cross-sector",
+        "function":  "Finance",
+        "technology":  "Tech-agnostic"
+    },
+    {
+        "id":  "tom-rtr-1",
+        "text":  "Record to Report (R2R) is the end-to-end finance process covering the capture of transactions through to financial close and reporting. It includes general ledger accounting, period-end close, and financial reporting. A well-designed R2R process shortens the close cycle, improves data quality, and strengthens the control environment.",
+        "source":  "Finance Process Reference",
+        "locator":  "p. 21",
+        "classification":  "KPMG Confidential",
+        "sector":  "Cross-sector",
+        "function":  "Finance",
+        "technology":  "Tech-agnostic"
+    },
+    {
+        "id":  "tom-p2p-1",
+        "text":  "Procure to Pay (P2P) spans requisitioning, purchasing, invoice processing, and payment. Effective P2P designs enforce a three-way match between purchase order, goods receipt, and supplier invoice before payment, reducing the risk of duplicate or fraudulent disbursements.",
+        "source":  "Finance Process Reference",
+        "locator":  "p. 34",
+        "classification":  "KPMG Confidential",
+        "sector":  "Cross-sector",
+        "function":  "Finance",
+        "technology":  "Tech-agnostic"
+    },
+    {
+        "id":  "tom-benefits-1",
+        "text":  "Bringing TOM content into a single knowledge graph and document index enables consistent answers to questions about process structure and meaning. It reduces the time consultants spend searching documents, removes the need for specialist tools to read process hierarchies, and supports automatic generation of process documentation and diagrams.",
+        "source":  "TOM Knowledge Assistant Brief",
+        "locator":  "p. 2",
+        "classification":  "KPMG Confidential",
+        "sector":  "Cross-sector",
+        "function":  "Finance",
+        "technology":  "Tech-agnostic"
+    },
+    {
+        "id":  "tom-leading-practice-rtr-1",
+        "text":  "Leading practice for Record to Report emphasises a compressed close calendar: standardising journal-entry templates, automating recurring accruals, performing sub-ledger reconciliations continuously through the period rather than at month end, and governing the close with a single orchestrated task list. Organisations at the leading maturity level typically achieve a 3-5 working-day close with exception-based review, freeing controllership capacity for analysis over transaction processing.",
+        "source":  "Finance Leading Practices Library",
+        "locator":  "RTR-LP 1.2",
+        "classification":  "KPMG Confidential",
+        "sector":  "Cross-sector",
+        "function":  "Finance",
+        "technology":  "Tech-agnostic"
+    },
+    {
+        "id":  "tom-platform-sap-1",
+        "text":  "In an SAP S/4HANA tech-specific TOM, the Finance function's Record to Report processes map to the Universal Journal (ACDOCA) as the single source of accounting truth. Period-end close activities are orchestrated with SAP Advanced Financial Closing, intercompany matching is realised through ICMR, and embedded analytics via Fiori apps replace separate reporting steps. Product-specific controls include role-based Fiori catalog restrictions and automated three-way match configuration in Procure to Pay.",
+        "source":  "Platform Reference: SAP S/4HANA Finance",
+        "locator":  "section 4.1",
+        "classification":  "KPMG Confidential",
+        "sector":  "Cross-sector",
+        "function":  "Finance",
+        "technology":  "SAP S/4HANA"
+    },
+    {
+        "id":  "tom-platform-oracle-1",
+        "text":  "In an Oracle Fusion Cloud ERP tech-specific TOM, Finance processes are realised through the Accounting Hub and General Ledger for Record to Report, with Transactional Business Intelligence providing embedded close and reconciliation reporting. Procure to Pay is bound to Oracle Procurement and Payables with configurable approval workflows in BPM, and platform controls rely on segregation-of-duties rules enforced by Risk Management Cloud.",
+        "source":  "Platform Reference: Oracle Fusion Cloud ERP",
+        "locator":  "section 3.2",
+        "classification":  "KPMG Confidential",
+        "sector":  "Cross-sector",
+        "function":  "Finance",
+        "technology":  "Oracle Fusion Cloud"
+    }
+]

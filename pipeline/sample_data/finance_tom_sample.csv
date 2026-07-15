@@ -1,0 +1,18 @@
+code,name,level,parent_code,roles,controls
+F,Finance,0,,,
+F-RTR,Record to Report,1,F,GL Accountant;Finance Manager;Financial Controller,Monthly Account Reconciliation;Segregation of Duties
+F-P2P,Procure to Pay,1,F,AP Clerk;AP Manager,Three-Way Match;Segregation of Duties
+F-O2C,Order to Cash,1,F,,
+F-RTR-GL,General Ledger Accounting,2,F-RTR,,
+F-RTR-PC,Period-End Close,2,F-RTR,,
+F-RTR-FR,Financial Reporting,2,F-RTR,,
+F-P2P-REQ,Requisitioning,2,F-P2P,,
+F-P2P-INV,Invoice Processing,2,F-P2P,,
+F-P2P-PAY,Payment Processing,2,F-P2P,,
+F-O2C-CR,Credit Management,2,F-O2C,,
+F-O2C-BIL,Billing,2,F-O2C,,
+F-RTR-GL-JE,Journal Entry Processing,3,F-RTR-GL,,
+F-RTR-GL-REC,Account Reconciliation,3,F-RTR-GL,,
+F-RTR-FR-STAT,Statutory Reporting,3,F-RTR-FR,,
+F-RTR-GL-JE-MAN,Manual Journal Entry,4,F-RTR-GL-JE,,
+F-RTR-GL-JE-REC,Recurring Journal Entry,4,F-RTR-GL-JE,,
