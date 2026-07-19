@@ -146,6 +146,7 @@
 .badge.multihop .dot { background: var(--multihop); }
 .confidence { font-size: var(--step--1); color: var(--muted); }
 .latency { font-size: var(--step--1); color: var(--muted); margin-left: auto; font-family: var(--font-mono); }
+.ai-note { font-size: var(--step--1); color: var(--muted); font-style: italic; cursor: help; }
 
 /* ---------------- Citations ---------------- */
 .citations { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; }

@@ -58,6 +58,38 @@ stages:
               az bicep build --file infra/main.bicep
             displayName: Build Bicep template
 
+      # Supply-chain controls (OWASP LLM03): fail the build on known-vulnerable
+      # dependencies and publish CycloneDX SBOMs for both stacks so the
+      # deployed component inventory is auditable per release.
+      - job: SupplyChain
+        displayName: Dependency audit + SBOM
+        pool:
+          vmImage: ubuntu-latest
+        steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: "$(pythonVersion)"
+          - script: |
+              python -m pip install --upgrade pip
+              pip install pip-audit cyclonedx-bom
+              pip-audit -r backend/requirements.txt
+              cyclonedx-py requirements backend/requirements.txt -o $(Build.ArtifactStagingDirectory)/sbom-backend.cdx.json
+            displayName: Python dependency audit + SBOM
+          - task: NodeTool@0
+            inputs:
+              versionSpec: "$(nodeVersion)"
+          - script: |
+              cd frontend
+              npm ci --ignore-scripts
+              npm audit --audit-level=high
+              npx --yes @cyclonedx/cyclonedx-npm --output-file $(Build.ArtifactStagingDirectory)/sbom-frontend.cdx.json
+            displayName: npm dependency audit + SBOM
+          - task: PublishBuildArtifacts@1
+            inputs:
+              pathToPublish: "$(Build.ArtifactStagingDirectory)"
+              artifactName: sbom
+            displayName: Publish SBOM artifacts
+
   - stage: Package
     displayName: Build container images
     dependsOn: Validate

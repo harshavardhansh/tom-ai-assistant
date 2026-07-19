@@ -14,12 +14,16 @@ from app.config import Settings, get_settings
 
 
 class AuditStore:
-    def record_exchange(self, session_id: str, question: str, answer: str) -> None:
+    def record_exchange(
+        self, session_id: str, question: str, answer: str, citations: Optional[list] = None
+    ) -> None:
         raise NotImplementedError
 
 
 class NullAuditStore(AuditStore):
-    def record_exchange(self, session_id: str, question: str, answer: str) -> None:
+    def record_exchange(
+        self, session_id: str, question: str, answer: str, citations: Optional[list] = None
+    ) -> None:
         return None
 
 
@@ -34,13 +38,25 @@ class CosmosAuditStore(AuditStore):  # pragma: no cover - requires Azure Cosmos
             partition_key=PartitionKey(path="/session_id"),
         )
 
-    def record_exchange(self, session_id: str, question: str, answer: str) -> None:
+    def record_exchange(
+        self, session_id: str, question: str, answer: str, citations: Optional[list] = None
+    ) -> None:
         self._container.upsert_item(
             {
                 "id": str(uuid4()),
                 "session_id": session_id,
                 "question": question,
                 "answer": answer,
+                # Which sources grounded the answer (OWASP LLM08: immutable
+                # retrieval lineage per exchange).
+                "citations": [
+                    {
+                        "source": getattr(c, "source", None),
+                        "locator": getattr(c, "locator", None),
+                        "classification": getattr(c, "classification", None),
+                    }
+                    for c in (citations or [])
+                ],
                 "created_utc": datetime.now(timezone.utc).isoformat(),
                 "record_type": "qa_exchange",
             }

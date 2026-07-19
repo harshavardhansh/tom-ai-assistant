@@ -20,6 +20,11 @@ async def healthz() -> dict[str, str]:
 @router.get("/readyz")
 async def readyz() -> dict[str, object]:
     settings = get_settings()
+    # OWASP LLM02 / API8-style hardening: probes only need the status. Backend
+    # wiring and auth mode are configuration details an unauthenticated caller
+    # has no need for outside local development.
+    if settings.environment != "dev":
+        return {"status": "ready", "environment": settings.environment}
     return {
         "status": "ready",
         "environment": settings.environment,

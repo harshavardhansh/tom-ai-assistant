@@ -31,7 +31,9 @@ class ConversationMemory:
             return []
         return [QAExchange(**x) for x in json.loads(raw)]
 
-    def append(self, session_id: str, question: str, answer: str) -> None:
+    def append(
+        self, session_id: str, question: str, answer: str, citations: list | None = None
+    ) -> None:
         history = self.get(session_id)
         history.append(QAExchange(question=question, answer=answer))
         history = history[-self.window :]
@@ -40,7 +42,7 @@ class ConversationMemory:
             json.dumps([h.__dict__ for h in history]),
             ttl_s=_TTL_S,
         )
-        self.audit.record_exchange(session_id, question, answer)
+        self.audit.record_exchange(session_id, question, answer, citations=citations)
 
     def as_prompt_text(self, session_id: str) -> str:
         history = self.get(session_id)

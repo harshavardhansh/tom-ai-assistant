@@ -26,6 +26,78 @@ from typing import Any
 _PARA = re.compile(r"\n\s*\n")
 DEFAULT_CLASSIFICATION = "KPMG Confidential"
 
+# ---------------------------------------------------------------------------
+# Content safety screening (OWASP LLM01 Prompt Injection, LLM04 Data Poisoning,
+# LLM08 Vector & Embedding Weaknesses).
+#
+# Retrieved chunks are later interpolated into synthesis prompts, so ingested
+# documents are an indirect prompt-injection surface. Two deterministic
+# controls run on every chunk BEFORE it can reach the vector store:
+#   1. `sanitize_text` strips zero-width / bidi-control characters that hide
+#      instructions from human reviewers (hidden-text attacks).
+#   2. `screen_text` flags instruction-like payloads (e.g. "ignore previous
+#      instructions") so the knowledge manager must review before loading.
+# ---------------------------------------------------------------------------
+_HIDDEN_CHARS = re.compile(
+    "[\\u200b-\\u200f"  # zero-width space/joiners, LRM/RLM
+    "\\u202a-\\u202e"   # bidi embedding/override controls
+    "\\u2060-\\u2064"   # word joiner / invisible operators
+    "\\ufeff"             # zero-width no-break space (BOM)
+    "\\u00ad]"            # soft hyphen
+)
+_INJECTION_PATTERNS: list[tuple[re.Pattern[str], str]] = [
+    (re.compile(r"\bignore\s+(?:all\s+|any\s+)?(?:previous|prior|above|earlier)\s+(?:instructions?|prompts?|rules?)\b", re.I),
+     "instruction-override phrase ('ignore previous instructions')"),
+    (re.compile(r"\bdisregard\s+(?:all\s+|any\s+)?(?:previous|prior|above|earlier|your)\s+(?:instructions?|prompts?|rules?|guidelines?)\b", re.I),
+     "instruction-override phrase ('disregard ... instructions')"),
+    (re.compile(r"\bforget\s+(?:all\s+|any\s+)?(?:previous|prior|your)\s+(?:instructions?|rules?|training)\b", re.I),
+     "instruction-override phrase ('forget ... instructions')"),
+    (re.compile(r"\b(?:reveal|print|repeat|show)\s+(?:your\s+)?system\s+prompt\b", re.I),
+     "system-prompt extraction attempt"),
+    (re.compile(r"\byou\s+are\s+now\s+(?:a|an|in)\b", re.I),
+     "role-reassignment phrase ('you are now ...')"),
+    (re.compile(r"\b(?:developer|god|jailbreak)\s*mode\b", re.I),
+     "jailbreak keyword"),
+    (re.compile(r"\bdo\s+not\s+(?:mention|reveal|tell)\s+(?:this|the\s+user)\b", re.I),
+     "concealment instruction addressed to the model"),
+    (re.compile(r"\bnew\s+instructions?\s*:", re.I),
+     "embedded instruction block ('new instructions:')"),
+]
+
+
+def sanitize_text(text: str) -> str:
+    """Remove characters that can hide content from human review."""
+    return _HIDDEN_CHARS.sub("", text)
+
+
+def screen_text(text: str) -> list[str]:
+    """Return descriptions of injection-like patterns found in `text`."""
+    return [desc for pattern, desc in _INJECTION_PATTERNS if pattern.search(text)]
+
+
+def screen_chunks(chunks: list[dict[str, Any]]) -> list[str]:
+    """Sanitize every chunk in place; tag suspects and return warnings."""
+    warnings: list[str] = []
+    for chunk in chunks:
+        original = str(chunk.get("text", ""))
+        cleaned = sanitize_text(original)
+        if cleaned != original:
+            chunk["text"] = cleaned
+            warnings.append(
+                f"Hidden/invisible characters stripped from chunk {str(chunk.get('id', '?'))[:12]} "
+                f"({chunk.get('source', 'unknown')}, {chunk.get('locator', '?')})"
+            )
+        findings = screen_text(cleaned)
+        if findings:
+            chunk["suspect"] = True
+            for finding in findings:
+                warnings.append(
+                    f"Possible prompt-injection payload in chunk {str(chunk.get('id', '?'))[:12]} "
+                    f"({chunk.get('source', 'unknown')}, {chunk.get('locator', '?')}): {finding}"
+                )
+    return warnings
+
+
 
 def _content_id(*parts: str) -> str:
     return hashlib.sha256("|".join(parts).encode("utf-8")).hexdigest()
@@ -204,12 +276,22 @@ def main() -> None:
     args = ap.parse_args()
 
     chunks = collect(args.input, args.classification, args.sector, args.function, args.technology)
+    warnings = screen_chunks(chunks)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(chunks, indent=2))
     print(f"Wrote {args.output} ({len(chunks)} chunks)")
+    for w in warnings:
+        print(f"WARNING: {w}")
 
     if args.load:
         import sys
+
+        if warnings:
+            sys.exit(
+                f"Refusing to load: {len(warnings)} content-safety warning(s). "
+                "Review the flagged chunks (marked 'suspect') and re-run, or "
+                "load via the ingestion API with fail_on_warnings=false after review."
+            )
 
         sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
         from app.clients.vector_store import get_vector_store

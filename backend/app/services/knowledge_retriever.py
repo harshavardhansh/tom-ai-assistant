@@ -7,6 +7,7 @@ fabricating one.
 """
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -48,5 +49,17 @@ class KnowledgeRetriever:
     ) -> RetrievalAnswer:
         candidates = self.store.hybrid_search(question, self.top_k, scope or {})
         reranked = self.reranker.rerank(question, candidates)
+        # Retrieval activity log (OWASP LLM08): record what was retrieved for
+        # which query — by content hash, not raw text (LLM02) — so suspicious
+        # retrieval patterns are visible in ops telemetry.
+        qh = hashlib.sha256(question.encode("utf-8")).hexdigest()[:12]
+        logger.info(
+            "retrieval q=%s scope=%s candidates=%d kept=%d sources=%s",
+            qh,
+            scope or {},
+            len(candidates),
+            len(reranked),
+            [(c.source, c.locator, round(c.score, 3)) for c in reranked],
+        )
         narrative, citations = self.synth.vector_answer(question, reranked, history, persona)
         return RetrievalAnswer(narrative=narrative, citations=citations, chunks=reranked)

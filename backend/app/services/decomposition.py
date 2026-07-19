@@ -9,6 +9,7 @@ from __future__ import annotations
 import re
 
 from app.clients.llm_client import LLMClient
+from app.config import get_settings
 from app.core.logging import get_logger
 from app.models.schemas import Route, SubQuestion
 from app.prompts import templates as P
@@ -24,6 +25,10 @@ class QuestionDecomposer:
         self.router = router or QueryRouter(self.llm)
 
     def decompose(self, question: str) -> list[SubQuestion]:
+        # Branch cap (OWASP LLM10): every sub-question fans out into its own
+        # LLM + retrieval calls, so an unbounded decomposition (whether LLM-
+        # produced or crafted via many conjunctions) is a cost amplifier.
+        cap = get_settings().max_sub_questions
         if self.llm.available:
             try:
                 data = self.llm.chat_json(P.DECOMPOSE_SYSTEM, P.DECOMPOSE_USER.format(question=question))
@@ -33,10 +38,10 @@ class QuestionDecomposer:
                     if s.get("text")
                 ]
                 if subs:
-                    return subs
+                    return subs[:cap]
             except Exception as exc:  # noqa: BLE001
                 logger.info("LLM decomposition failed (%s); using deterministic split", exc)
-        return self._fallback_split(question)
+        return self._fallback_split(question)[:cap]
 
     def _fallback_split(self, question: str) -> list[SubQuestion]:
         parts = [p.strip(" ,.?") for p in _SPLIT_RE.split(question) if p and p.strip(" ,.?")]

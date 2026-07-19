@@ -66,7 +66,7 @@ settings are present.
 ## Repository Layout
 
 ```text
-docs/                 Plan, architecture, compliance, API reference
+docs/                 Plan, architecture, compliance (incl. OWASP LLM Top 10 mapping), API reference
 backend/              FastAPI app and tests
 pipeline/             SharePoint/Defender/Blob ingestion scripts and sample data
 frontend/             React + Vite SPA with MSAL

@@ -50,6 +50,10 @@ class Settings(BaseSettings):
     gremlin_database: str = "tom"
     gremlin_graph: str = "processes"
     gremlin_key: str = ""
+    # Least privilege (OWASP LLM06): when set, the NL-query/read path uses this
+    # Cosmos READ-ONLY key; the primary key is then only used for ingestion
+    # upserts. LLM-influenced traversals can never write, even if a guard fails.
+    gremlin_readonly_key: str = ""
 
     # ---- Azure AI Search (production vector) ----
     search_endpoint: str = ""
@@ -67,6 +71,10 @@ class Settings(BaseSettings):
     hybrid_top_k: int = 5
     rerank_relevance_threshold: float = 0.35  # below this -> dropped (anti-hallucination)
     memory_window: int = 5  # last N Q&A pairs (per POC)
+
+    # ---- Abuse / consumption controls (OWASP LLM10) ----
+    rate_limit_per_minute: int = 60  # per-principal budget on /chat + /export; 0 disables
+    max_sub_questions: int = 5  # cap on multi-hop decomposition branches
 
     # ---- Auth (Entra ID) ----
     auth_disabled: bool = True  # dev convenience; MUST be False in uat/prod

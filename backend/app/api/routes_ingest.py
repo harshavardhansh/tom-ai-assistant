@@ -63,6 +63,10 @@ class VectorIngestRequest(BaseModel):
     technology: str = Field("Tech-agnostic", max_length=128)
     classification: Optional[str] = Field(None, max_length=128)
     load: bool = True
+    # OWASP LLM01/LLM04/LLM08: content-safety findings (hidden characters,
+    # prompt-injection payloads) block loading unless explicitly overridden by
+    # the knowledge manager after review.
+    fail_on_warnings: bool = True
 
 
 class ProcessBlobRequest(BaseModel):
@@ -156,7 +160,7 @@ def _run_vector(req: VectorIngestRequest) -> IngestStatus:
     if not input_path.exists():
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"Vector input not found: {req.input_path}")
 
-    from pipeline.document_to_vector import collect
+    from pipeline.document_to_vector import collect, screen_chunks
 
     chunks = collect(
         input_path,
@@ -165,8 +169,25 @@ def _run_vector(req: VectorIngestRequest) -> IngestStatus:
         req.function,
         req.technology,
     )
+    # Content-safety screen (OWASP LLM01/LLM04/LLM08): sanitize hidden
+    # characters and flag prompt-injection payloads before anything can be
+    # embedded into the retrieval corpus.
+    warnings = screen_chunks(chunks)
     output_path = _processed_path(req.output_path, f"{input_path.stem}.vectors.json")
     output_path.write_text(json.dumps(chunks, indent=2), encoding="utf-8")
+
+    if warnings and req.fail_on_warnings:
+        return IngestStatus(
+            accepted=False,
+            detail=(
+                "Vector artifact was generated but not loaded because content-safety "
+                "warnings must be reviewed (suspect chunks are tagged in the artifact). "
+                "Re-submit with fail_on_warnings=false to load after review."
+            ),
+            artifact=str(output_path),
+            loaded=0,
+            warnings=warnings,
+        )
 
     loaded = 0
     if req.load:
@@ -176,6 +197,7 @@ def _run_vector(req: VectorIngestRequest) -> IngestStatus:
         detail=f"Vector artifact contains {len(chunks)} chunks.",
         artifact=str(output_path),
         loaded=loaded,
+        warnings=warnings,
     )
 
 

@@ -4,7 +4,8 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 from fastapi.responses import Response
 
-from app.core.security import Principal, get_principal
+from app.core.ratelimit import rate_limited_principal
+from app.core.security import Principal
 from app.models.schemas import ExportRequest
 from app.services.exporter import Exporter
 
@@ -13,7 +14,7 @@ _exporter = Exporter()
 
 
 @router.post("/export")
-async def export(req: ExportRequest, principal: Principal = Depends(get_principal)) -> Response:
+async def export(req: ExportRequest, principal: Principal = Depends(rate_limited_principal)) -> Response:
     result = _exporter.export(req.answer_markdown, req.title, req.fmt, req.process_flow)
     return Response(
         content=result.content,

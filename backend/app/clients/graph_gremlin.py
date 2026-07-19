@@ -52,17 +52,36 @@ class GremlinGraphStore(GraphStore):
         from gremlin_python.driver import client, serializer
 
         self.settings = settings
+        username = f"/dbs/{settings.gremlin_database}/colls/{settings.gremlin_graph}"
         self._client = client.Client(
             settings.gremlin_endpoint,
             "g",
-            username=f"/dbs/{settings.gremlin_database}/colls/{settings.gremlin_graph}",
+            username=username,
             password=settings.gremlin_key,
             message_serializer=serializer.GraphSONSerializersV2d0(),
         )
+        # Least privilege (OWASP LLM06): all read/NL-query traffic goes through
+        # a client authenticated with the Cosmos read-only key when configured,
+        # so LLM-influenced traversals are unable to write at the account level
+        # regardless of application-side guards. Writes (ingestion upserts)
+        # keep using the primary-key client above.
+        if settings.gremlin_readonly_key:
+            self._read_client = client.Client(
+                settings.gremlin_endpoint,
+                "g",
+                username=username,
+                password=settings.gremlin_readonly_key,
+                message_serializer=serializer.GraphSONSerializersV2d0(),
+            )
+        else:
+            self._read_client = self._client
         self._llm = LLMClient(settings)
 
     def _submit(self, query: str, bindings: Optional[dict[str, Any]] = None) -> list[Any]:
         return self._client.submitAsync(query, bindings or {}).result().all().result()
+
+    def _submit_read(self, query: str, bindings: Optional[dict[str, Any]] = None) -> list[Any]:
+        return self._read_client.submitAsync(query, bindings or {}).result().all().result()
 
     def natural_language_query(
         self,
@@ -103,14 +122,14 @@ class GremlinGraphStore(GraphStore):
             ".has('level', lvl).valueMap('code','name','level')"
         )
         bindings.update({"nm": name.lower(), "lvl": level})
-        results = self._submit(query, bindings)
+        results = self._submit_read(query, bindings)
         return [self._flatten(v) for v in results]
 
     def _related(self, name: str, edge: str, scope: dict[str, str]) -> list[dict[str, Any]]:
         scope_steps, bindings = self._scope_steps(scope)
         query = f"g.V().has('name_lc', nm){scope_steps}.out('{edge}').valueMap('code','name')"
         bindings["nm"] = name.lower()
-        return [self._flatten(v) for v in self._submit(query, bindings)]
+        return [self._flatten(v) for v in self._submit_read(query, bindings)]
 
     def get_process_flow(self, process_name: str) -> Optional[dict[str, Any]]:
         return self._get_process_flow(process_name, {})
@@ -119,7 +138,7 @@ class GremlinGraphStore(GraphStore):
         scope_steps, bindings = self._scope_steps(scope)
         query = f"g.V().has('level',1).has('name_lc', nm){scope_steps}.values('process_flow_json')"
         bindings["nm"] = process_name.lower()
-        rows = self._submit(query, bindings)
+        rows = self._submit_read(query, bindings)
         if rows:
             raw = rows[0]
             return json.loads(raw) if isinstance(raw, str) else raw
@@ -180,7 +199,9 @@ class GremlinGraphStore(GraphStore):
 
     def _llm_traversal(self, question: str, scope: dict[str, str]) -> GraphResult:  # pragma: no cover - needs Cosmos + LLM
         if not self._llm.available:
-            logger.info("No fast-path matched and Workbench LLM unavailable for: %s", question)
+            # Log a truncated preview only — questions can carry client-
+            # sensitive detail (OWASP LLM02).
+            logger.info("No fast-path matched and Workbench LLM unavailable for: %.80s", question)
             return GraphResult(rows=[], query="unmatched", scope=scope)
         try:
             scope_text = f"\nScope filters to apply when present: {json.dumps(scope)}" if scope else ""
@@ -193,7 +214,7 @@ class GremlinGraphStore(GraphStore):
             )
             traversal = str(data["traversal"]).strip()
             self._assert_read_only(traversal)
-            rows = self._submit(traversal, {})
+            rows = self._submit_read(traversal, {})
             normalised = [
                 self._flatten(r) if isinstance(r, dict) else {"value": r}
                 for r in rows
@@ -206,7 +227,7 @@ class GremlinGraphStore(GraphStore):
                     break
             return GraphResult(rows=normalised, query=traversal, process_flow=flow, scope=scope)
         except (LLMUnavailable, Exception) as exc:
-            logger.info("LLM Gremlin traversal failed for %s: %s", question, exc)
+            logger.info("LLM Gremlin traversal failed for %.80s: %s", question, exc)
             return GraphResult(rows=[], query="unmatched", scope=scope)
 
     @staticmethod
@@ -249,3 +270,5 @@ class GremlinGraphStore(GraphStore):
 
     def close(self) -> None:
         self._client.close()
+        if self._read_client is not self._client:
+            self._read_client.close()

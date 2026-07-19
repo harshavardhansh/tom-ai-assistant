@@ -72,7 +72,7 @@ class Orchestrator:
         response.persona = persona
         response.timings_ms = timer.timings_ms
         with timer.stage("persist"):
-            self.memory.append(session_id, question, response.answer)
+            self.memory.append(session_id, question, response.answer, citations=response.citations)
         return response
 
     # -- single-hop graph ----------------------------------------------

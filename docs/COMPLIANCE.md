@@ -6,6 +6,10 @@ This document maps the TOM AI Knowledge Assistant controls to KPMG-style
 enterprise expectations. Final approval remains with Risk, Security, and the
 environment owner.
 
+For the AI/LLM-specific threat model, see `docs/OWASP_LLM_COMPLIANCE.md`,
+which maps every control to the OWASP Top 10 for LLM Applications (2025)
+with per-item implementation evidence.
+
 ## Data Handling
 
 - Every retrieved chunk and exported asset carries a classification, defaulting
